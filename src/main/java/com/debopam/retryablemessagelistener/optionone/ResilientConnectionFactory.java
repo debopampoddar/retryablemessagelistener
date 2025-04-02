@@ -19,7 +19,7 @@ public class ResilientConnectionFactory extends CachingConnectionFactory {
         // Connection recovery settings
         this.setConnectionTimeout(10000); // 10 seconds
         this.setRequestedHeartBeat(60); // 60 seconds
-        this.setRecoveryInterval(5000); // 5 seconds
+        //this.setRecoveryInterval(5000); // 5 seconds
         this.setConnectionCacheSize(10); // Pool size
     }
 

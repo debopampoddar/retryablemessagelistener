@@ -1,14 +1,20 @@
 package com.debopam.retryablemessagelistener.optiontwo;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.AmqpException;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+
 import java.util.Map;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atMost;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class ResilientRabbitMQListenerTest {
 
