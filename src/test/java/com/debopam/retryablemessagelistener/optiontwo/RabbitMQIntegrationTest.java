@@ -54,16 +54,6 @@ public class RabbitMQIntegrationTest {
                     .withEnv("RABBITMQ_DEFAULT_USER", "guest")
                     .withEnv("RABBITMQ_DEFAULT_PASS", "guest")
                     .withReuse(true);
-    /*
-            new RabbitMQContainer("rabbitmq:4.0.4-management")
-                    .withExposedPorts(5672, 15672)
-                    .withQueue("testQueue", false, true, null)
-                    .withFileSystemBind("/Users/Debopam/Documents/rabbitmq", "/var/lib/rabbitmq/")
-                    .withPluginsEnabled("rabbitmq_management") // Enable management plugin
-                    .withQueue("persistent-queue", true, false, null) // Persistent queue
-                    //.withNetwork(Network.newNetwork())
-                    .withEnv("RABBITMQ_DEFAULT_USER", "guest")
-                    .withEnv("RABBITMQ_DEFAULT_PASS", "guest");*/
 
     private CachingConnectionFactory connectionFactory;
     private SimpleMessageListenerContainer container;

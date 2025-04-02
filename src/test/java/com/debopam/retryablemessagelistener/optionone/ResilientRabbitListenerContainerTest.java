@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.support.ListenerExecutionFailedException;
 import org.springframework.retry.backoff.BackOffPolicy;
@@ -21,7 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -99,5 +103,24 @@ class ResilientRabbitListenerContainerTest {
         assertInstanceOf(ExponentialBackOffPolicy.class, policy);
         assertEquals(1000, ((ExponentialBackOffPolicy) policy).getInitialInterval());
         assertEquals(2.0, ((ExponentialBackOffPolicy) policy).getMultiplier(), 0.01);
+    }
+
+    @Test
+    void testRestartWithMultipleAttempts() throws Exception {
+        // Configure shorter retry settings for test
+        //container.setRecoverySettings(3, 1000, 1.5);
+
+        // Setup mock metrics collector
+        ResilientRabbitListenerContainer.MetricsCollector mockCollector = mock(ResilientRabbitListenerContainer.MetricsCollector.class);
+        container.setMetricsCollector(mockCollector);
+
+        // Force connection failure
+        ((CachingConnectionFactory) container.getConnectionFactory()).destroy();
+
+        // Verify restart attempts
+        verify(mockCollector, timeout(10000).atLeastOnce()).onRecovery(anyInt());
+
+        // OR if all attempts fail
+        // verify(mockCollector, timeout(15000)).onRecoveryFailure(3);
     }
 }
