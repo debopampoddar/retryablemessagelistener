@@ -137,7 +137,7 @@ public class RabbitMQIntegrationTest {
         container = new ResilientRabbitMQListener(connectionFactory, Map.of(
                 QUEUE_NAME, message -> {
                     try {
-                        Thread.sleep(Duration.ofMillis(500));
+                        Thread.sleep(Duration.ofMillis(100));
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
@@ -185,7 +185,6 @@ public class RabbitMQIntegrationTest {
     private void waitUntilRabbitMQStabilizes() throws InterruptedException {
         System.out.println("Waiting for RabbitMQ to stabilize...");
         for (int i = 0; i < 10; i++) {
-            //admin = new RabbitAdmin(createRabbitMQConnectionFactory());
             if (getQueueDepth() > 0) {
                 return;
             }
