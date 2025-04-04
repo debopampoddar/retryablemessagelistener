@@ -14,6 +14,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+/**
+ * A resilient RabbitMQ listener that extends {@link SimpleMessageListenerContainer} to provide
+ * automatic reconnection, retry mechanisms, and metrics collection.
+ */
 @Component
 public class ResilientRabbitMQListener extends SimpleMessageListenerContainer {
 
@@ -21,6 +25,11 @@ public class ResilientRabbitMQListener extends SimpleMessageListenerContainer {
     private final MeterRegistry meterRegistry;
     private final RetryTemplate retryTemplate;
 
+    /**
+     * Creates a RabbitMQ connection factory with automatic reconnection enabled.
+     *
+     * @return the configured connection factory
+     */
     private ConnectionFactory createRabbitMQConnectionFactory() {
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory("localhost");
         connectionFactory.setUsername("guest");
@@ -34,6 +43,13 @@ public class ResilientRabbitMQListener extends SimpleMessageListenerContainer {
         return connectionFactory;
     }
 
+    /**
+     * Creates a new instance of {@link ResilientRabbitMQListener}.
+     *
+     * @param connectionFactory the RabbitMQ connection factory
+     * @param processorMap      a map of message processors for different queues
+     * @param meterRegistry     the meter registry for metrics collection
+     */
     public ResilientRabbitMQListener(ConnectionFactory connectionFactory,
                                      Map<String, MessageProcessor> processorMap,
                                      MeterRegistry meterRegistry) {
@@ -42,18 +58,22 @@ public class ResilientRabbitMQListener extends SimpleMessageListenerContainer {
         this.meterRegistry = meterRegistry;
         this.retryTemplate = createRetryTemplate();
 
-        this.setQueueNames("queue1", "queue2");
+        // Set the queue names to listen to
+        //this.setQueueNames("queue1", "queue2");
         this.setAcknowledgeMode(AcknowledgeMode.AUTO);
         this.setConcurrentConsumers(2);
         this.setMaxConcurrentConsumers(5);
 
+        // Set the message listener with retry logic
         this.setMessageListener((ChannelAwareMessageListener) (message, channel) -> {
             String queueName = message.getMessageProperties().getConsumerQueue();
             String messageBody = new String(message.getBody());
 
+            // Start a timer for retry metrics
             Timer.Sample retryTimer = Timer.start(meterRegistry);
 
             try {
+                // Execute the message processing with retry
                 retryTemplate.execute(context -> {
                     processMessage(queueName, messageBody);
                     return null;
@@ -61,12 +81,20 @@ public class ResilientRabbitMQListener extends SimpleMessageListenerContainer {
             } catch (Exception e) {
                 System.err.println("Final failure after retries. Waiting for connection recovery.");
             } finally {
+                // Stop the retry timer
                 retryTimer.stop(meterRegistry.timer("rabbitmq.retry.time"));
             }
         });
     }
 
+    /**
+     * Processes a message from the specified queue.
+     *
+     * @param queueName the name of the queue
+     * @param message   the message to process
+     */
     void processMessage(String queueName, String message) {
+        // Start a timer for processing metrics
         Timer.Sample timerSample = Timer.start(meterRegistry);
         try {
             MessageProcessor processor = processorMap.get(queueName);
@@ -77,10 +105,16 @@ public class ResilientRabbitMQListener extends SimpleMessageListenerContainer {
                 System.out.println("No processor found for queue: " + queueName);
             }
         } finally {
+            // Stop the processing timer
             timerSample.stop(meterRegistry.timer("rabbitmq.processing.time"));
         }
     }
 
+    /**
+     * Creates a {@link RetryTemplate} with a simple retry policy and exponential backoff policy.
+     *
+     * @return the configured retry template
+     */
     private RetryTemplate createRetryTemplate() {
         RetryTemplate retryTemplate = new RetryTemplate();
 
@@ -99,4 +133,3 @@ public class ResilientRabbitMQListener extends SimpleMessageListenerContainer {
         return retryTemplate;
     }
 }
-
